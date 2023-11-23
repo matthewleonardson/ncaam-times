@@ -1,95 +1,92 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+"use client"
+
+import React from "react";
+import Timer from "./timer";
 
 export default function Home() {
+  
+  // minute_ms defines how often the website refetches data
+  const MINUTE_MS = 60000;
+  const SECOND_MS = 1000;
+  const ENDPOINT_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=50&limit=200";
+  const [jsonData, setJsonData] = React.useState(null);
+  const [secsRemaining, setSecsRemaining] = React.useState(60);
+
+  async function getJsonFromApi() {
+    try {
+      let response = await fetch(ENDPOINT_URL);
+      let responseJson = await response.json();
+      filterAndSortJson(responseJson)
+     } catch(error) {
+      console.error(error);
+    }
+  }
+
+  function filterAndSortJson(data) {
+    
+    let to_append = ""
+
+    for(let i = 0; i < data['events'].length; i++) {
+      let event = data['events'][i];
+      
+      if(event['status']['type']['id'] === "2") {
+        to_append += event['competitions'][0]['competitors'][1]['score'] + " - " + event['competitions'][0]['competitors'][0]['score'] + " " + event['name'] + " " + event['status']['type']['shortDetail'] +  '\n'
+      }
+
+    }
+
+    if(to_append === "") {
+      setJsonData("Nothing on!")
+    } else {
+      console.log()
+      setJsonData(to_append)
+    }
+  }
+
+  React.useEffect(() => {
+    console.log("Fetched JSON on mount")
+    getJsonFromApi()
+  }, [])
+
+  React.useEffect(() => {
+    
+    const interval = setInterval(() => {
+      
+        setSecsRemaining(60);
+        console.log("Fetched JSON on timer")
+        getJsonFromApi()
+      
+    }, MINUTE_MS);
+
+    
+  }, [])
+
+  React.useEffect(() => {
+    
+    const id = setInterval(() => setSecsRemaining((oldSecsRemaining) => oldSecsRemaining - 1), SECOND_MS);
+
+    return () => {
+      clearInterval(id);
+    };
+
+  }, []);
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+    
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+    <div id="games">
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
+      <Timer 
+        time = {secsRemaining}
+      />
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      <pre>
+        {(jsonData)}
+      </pre>
+   
+   </div>
+  </>
   )
 }
